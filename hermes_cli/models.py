@@ -52,6 +52,7 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     ("nvidia/nemotron-3-super-120b-a12b:free", "free"),
     ("arcee-ai/trinity-large-preview:free", "free"),
     ("arcee-ai/trinity-large-thinking",  ""),
+    ("google/gemma-4-26b-a4b-it:free",   "free"),
     ("openai/gpt-5.4-pro",              ""),
     ("openai/gpt-5.4-nano",             ""),
 ]
@@ -484,6 +485,7 @@ _PROVIDER_LABELS = {
     "kilocode": "Kilo Code",
     "alibaba": "Alibaba Cloud (DashScope)",
     "huggingface": "Hugging Face",
+    "openrouter-alt": "OpenRouter (ALT key)",
     "custom": "Custom endpoint",
 }
 
@@ -859,7 +861,7 @@ def curated_models_for_provider(provider: Optional[str]) -> list[tuple[str, str]
     is unreachable.
     """
     normalized = normalize_provider(provider)
-    if normalized == "openrouter":
+    if normalized in ("openrouter", "openrouter-alt"):
         return list(OPENROUTER_MODELS)
 
     # Try live API first (Codex, Nous, etc. all support /models)
