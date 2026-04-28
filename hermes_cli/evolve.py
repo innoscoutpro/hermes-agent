@@ -163,3 +163,47 @@ def handle_helper_flag(flag: str) -> int:
         return 0
 
     return -1
+
+
+def run_evolve(args: list[str]) -> None:
+    """Top-level entry: resolve install, dispatch helpers, or execvp into venv.
+
+    Never returns under normal flow:
+      - Helper flags call sys.exit(<code>).
+      - Setup failures call sys.exit(64|65|66).
+      - Successful path os.execvp's, replacing the current process.
+    """
+    # Helper flags short-circuit (only when they're the *first* arg, so
+    # users can still pass --where/--version through to the child if they
+    # really mean to use them as evolution-side flags — though neither
+    # exists today).
+    if args and args[0] in ("--where", "--version"):
+        rc = handle_helper_flag(args[0])
+        if rc != -1:
+            sys.exit(rc)
+
+    install = resolve_evolution_home()
+    if install is None:
+        print(_INSTALL_HINT, file=sys.stderr)
+        sys.exit(EXIT_NO_INSTALL)
+
+    py = venv_python(install)
+    if py is None:
+        print(
+            f"Found self-evolution at {install} but .venv missing. "
+            f"cd {install} && python -m venv .venv && "
+            ".venv/bin/pip install -e '.[dev]'",
+            file=sys.stderr,
+        )
+        sys.exit(EXIT_NO_VENV)
+
+    if not verify_package_importable(py):
+        print(
+            f"{py} cannot import evolution. "
+            f"Run: {py.parent}/pip install -e '{install}'",
+            file=sys.stderr,
+        )
+        sys.exit(EXIT_NOT_IMPORTABLE)
+
+    argv = build_argv(py, args)
+    os.execvp(argv[0], argv)
