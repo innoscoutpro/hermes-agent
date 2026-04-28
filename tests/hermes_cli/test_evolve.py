@@ -103,3 +103,76 @@ class TestVerifyPackageImportable:
         install = _make_fake_install(tmp_path, python_exit_code=1)
         py = evolve.venv_python(install)
         assert evolve.verify_package_importable(py) is False
+
+
+class TestBuildArgv:
+    def _python(self, tmp_path):
+        return _make_fake_install(tmp_path) / ".venv" / "bin" / "python"
+
+    def test_basic_forwarding(self, tmp_path):
+        py = self._python(tmp_path)
+        argv = evolve.build_argv(py, ["github-code-review"])
+        assert argv == [
+            str(py),
+            "-m",
+            "evolution.skills.evolve_skill",
+            "--skill",
+            "github-code-review",
+        ]
+
+    def test_skill_then_flags(self, tmp_path):
+        py = self._python(tmp_path)
+        argv = evolve.build_argv(
+            py, ["github-code-review", "--use-llm-judge", "--run-tests"]
+        )
+        assert argv == [
+            str(py),
+            "-m",
+            "evolution.skills.evolve_skill",
+            "--skill",
+            "github-code-review",
+            "--use-llm-judge",
+            "--run-tests",
+        ]
+
+    def test_explicit_skill_flag_no_rewrite(self, tmp_path):
+        # User typed --skill themselves — do not duplicate.
+        py = self._python(tmp_path)
+        argv = evolve.build_argv(
+            py, ["--skill", "github-code-review", "--use-llm-judge"]
+        )
+        assert argv.count("--skill") == 1
+        assert argv == [
+            str(py),
+            "-m",
+            "evolution.skills.evolve_skill",
+            "--skill",
+            "github-code-review",
+            "--use-llm-judge",
+        ]
+
+    def test_skill_equals_form_no_rewrite(self, tmp_path):
+        # --skill=foo is also "explicit"; no rewrite.
+        py = self._python(tmp_path)
+        argv = evolve.build_argv(
+            py, ["--skill=github-code-review", "--use-llm-judge"]
+        )
+        assert "--skill" not in argv  # Only the =form is present.
+        assert "--skill=github-code-review" in argv
+
+    def test_only_flags_no_rewrite(self, tmp_path):
+        # No positional skill name — pass everything as-is. Underlying CLI
+        # will complain that --skill is required; that is its job.
+        py = self._python(tmp_path)
+        argv = evolve.build_argv(py, ["--help"])
+        assert argv == [
+            str(py),
+            "-m",
+            "evolution.skills.evolve_skill",
+            "--help",
+        ]
+
+    def test_empty_args_passes_nothing_extra(self, tmp_path):
+        py = self._python(tmp_path)
+        argv = evolve.build_argv(py, [])
+        assert argv == [str(py), "-m", "evolution.skills.evolve_skill"]

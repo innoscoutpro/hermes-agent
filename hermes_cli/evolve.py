@@ -14,7 +14,10 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
+
+
+_EVOLUTION_ENTRY = ("-m", "evolution.skills.evolve_skill")
 
 
 # Path resolution candidates, in priority order. Each callable receives the
@@ -88,3 +91,22 @@ def verify_package_importable(python: Path) -> bool:
         # False answer this probe produces.
         return False
     return result.returncode == 0
+
+
+def build_argv(python: Path, user_args: Iterable[str]) -> list[str]:
+    """Build the argv passed to os.execvp.
+
+    Rewrites a bare positional skill name to `--skill <name>`. If the user
+    already passed `--skill` (either `--skill foo` or `--skill=foo`), the
+    rewrite is skipped to avoid duplication.
+    """
+    user_args = list(user_args)
+    has_explicit_skill = any(
+        a == "--skill" or a.startswith("--skill=") for a in user_args
+    )
+    rewritten: list[str]
+    if user_args and not user_args[0].startswith("-") and not has_explicit_skill:
+        rewritten = ["--skill", user_args[0]] + user_args[1:]
+    else:
+        rewritten = user_args
+    return [str(python), *_EVOLUTION_ENTRY, *rewritten]
