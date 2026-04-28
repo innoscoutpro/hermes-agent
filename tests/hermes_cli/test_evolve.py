@@ -243,6 +243,8 @@ class TestRunEvolve:
         # Force the resolver to return None (no usable install) so we exercise
         # the explicit fallback path for "dir found but no venv".
         monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(bad))
+        monkeypatch.setenv("HOME", str(tmp_path / "no-fallback"))
+        (tmp_path / "no-fallback").mkdir()
 
         with pytest.raises(SystemExit) as ei:
             evolve.run_evolve(["foo"])
@@ -254,6 +256,8 @@ class TestRunEvolve:
     def test_venv_python_exits_nonzero_returns_66(self, tmp_path, monkeypatch, capsys):
         install = _make_fake_install(tmp_path / "evo", python_exit_code=1)
         monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(install))
+        monkeypatch.setenv("HOME", str(tmp_path / "no-fallback"))
+        (tmp_path / "no-fallback").mkdir()
 
         with pytest.raises(SystemExit) as ei:
             evolve.run_evolve(["foo"])
@@ -264,6 +268,8 @@ class TestRunEvolve:
     def test_happy_path_calls_execvp(self, tmp_path, monkeypatch):
         install = _make_fake_install(tmp_path / "evo", python_exit_code=0)
         monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(install))
+        monkeypatch.setenv("HOME", str(tmp_path / "no-fallback"))
+        (tmp_path / "no-fallback").mkdir()
 
         recorded = {}
 
@@ -292,6 +298,8 @@ class TestRunEvolve:
     def test_where_short_circuits_before_execvp(self, tmp_path, monkeypatch, capsys):
         install = _make_fake_install(tmp_path / "evo")
         monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(install))
+        monkeypatch.setenv("HOME", str(tmp_path / "no-fallback"))
+        (tmp_path / "no-fallback").mkdir()
 
         called = []
         monkeypatch.setattr(
