@@ -84,10 +84,12 @@ Implementation plan: [`plans/2026-04-28-hermes-evolve-subcommand-impl.md`](../..
   already enforces this in `evolution/skills/skill_module.py`).
 - [x] All 29 unit tests pass; 12 pre-existing hermes_cli failures
   unrelated to this work remain unchanged.
-- [ ] README.md (or equivalent user-facing doc) documents the
-  subcommand, the env var, and the install prerequisite.
-- [ ] Branch `innoscout/feat-hermes-evolve-subcommand` pushed to
-  `fork (innoscoutpro/hermes-agent)`.
+- [x] `README.md` documents the subcommand, the env var, and the
+  install prerequisite (new section "Skill Self-Evolution (fork
+  addition)" between "Migrating from OpenClaw" and "Contributing").
+- [x] Branch `innoscout/feat-hermes-evolve-subcommand` pushed to
+  `fork (innoscoutpro/hermes-agent)` — see
+  https://github.com/innoscoutpro/hermes-agent/pull/new/innoscout/feat-hermes-evolve-subcommand
 
 ## Non-goals
 

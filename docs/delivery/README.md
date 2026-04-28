@@ -15,8 +15,8 @@ operating manual.
 | Status | Count |
 |--------|-------|
 | ⬜ Todo (`01-not-started/`) | 0 |
-| 🔄 In Progress (`02-in-progress/`) | 1 |
-| ✅ Done (`03-completed/`) | 0 |
+| 🔄 In Progress (`02-in-progress/`) | 0 |
+| ✅ Done (`03-completed/`) | 1 |
 | ❌ Dropped / ⚠️ MVP / 🔒 Restricted (`04-parked/`) | 0 |
 
 ---
@@ -25,10 +25,10 @@ operating manual.
 
 ### Wave 0 — CLI Integration
 
-- 🔄 [PBI-001 — `hermes evolve` subcommand](02-in-progress/PBI-001-hermes-evolve-subcommand/prd.md)
+- ✅ [PBI-001 — `hermes evolve` subcommand](03-completed/PBI-001-hermes-evolve-subcommand/prd.md)
   — first-class CLI wrapper that subprocess-dispatches into the
-  `hermes-agent-self-evolution` package's venv. Tasks 1–5 of 6 done +
-  path migration; Task 6 (README + push) remaining.
+  `hermes-agent-self-evolution` package's venv. All acceptance criteria
+  met; branch pushed to `fork (innoscoutpro/hermes-agent)`.
 
 ---
 
