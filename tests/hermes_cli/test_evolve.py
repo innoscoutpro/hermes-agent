@@ -86,6 +86,12 @@ class TestVenvPython:
         (tmp_path / "evo").mkdir()
         assert evolve.venv_python(tmp_path / "evo") is None
 
+    def test_returns_none_when_python_not_executable(self, tmp_path):
+        install = _make_fake_install(tmp_path)
+        py = install / ".venv" / "bin" / "python"
+        py.chmod(0o644)  # strip exec bit
+        assert evolve.venv_python(install) is None
+
 
 class TestVerifyPackageImportable:
     def test_true_when_python_exits_zero(self, tmp_path):

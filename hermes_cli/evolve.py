@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 
 # Path resolution candidates, in priority order. Each callable receives the
@@ -27,10 +27,17 @@ _FALLBACK_CANDIDATES = (
 )
 
 
+def venv_python(install: Path) -> Optional[Path]:
+    """Return the venv's python executable path, or None if missing."""
+    py = install / ".venv" / "bin" / "python"
+    if py.is_file() and os.access(py, os.X_OK):
+        return py
+    return None
+
+
 def _has_venv_python(candidate: Path) -> bool:
     """A candidate path is usable iff it contains an executable .venv/bin/python."""
-    py = candidate / ".venv" / "bin" / "python"
-    return py.is_file() and os.access(py, os.X_OK)
+    return venv_python(candidate) is not None
 
 
 def resolve_evolution_home() -> Optional[Path]:
@@ -50,19 +57,16 @@ def resolve_evolution_home() -> Optional[Path]:
         if candidate.is_dir() and _has_venv_python(candidate):
             return candidate
 
-    home = Path(os.environ.get("HOME", "~")).expanduser()
+    try:
+        home = Path.home()
+    except RuntimeError:
+        return None
     for build in _FALLBACK_CANDIDATES:
         candidate = build(home)
         if candidate.is_dir() and _has_venv_python(candidate):
             return candidate
 
     return None
-
-
-def venv_python(install: Path) -> Optional[Path]:
-    """Return the venv's python executable path, or None if missing."""
-    py = install / ".venv" / "bin" / "python"
-    return py if py.is_file() and os.access(py, os.X_OK) else None
 
 
 def verify_package_importable(python: Path) -> bool:
@@ -79,5 +83,8 @@ def verify_package_importable(python: Path) -> bool:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
+        # OSError covers ENOENT / EACCES / EMFILE / ENOMEM — any failure to
+        # invoke python at all means the install is unusable, which is the
+        # False answer this probe produces.
         return False
     return result.returncode == 0
