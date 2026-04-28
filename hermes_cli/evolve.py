@@ -37,7 +37,12 @@ _INSTALL_HINT = (
 # Path resolution candidates, in priority order. Each callable receives the
 # evaluated $HOME and returns a candidate Path. The env-var lookup is handled
 # separately because it is highest priority and not relative to HOME.
+#
+# Both `~/Code/` (capital C — common on macOS / mixed dev machines) and
+# `~/code/` (lowercase — common on Linux) are checked, capital first to
+# match the usual convention on user machines that have both layouts.
 _FALLBACK_CANDIDATES = (
+    lambda home: home / "Code" / "hermes-agent-self-evolution",
     lambda home: home / "code" / "hermes-agent-self-evolution",
     lambda home: home / "hermes-agent-self-evolution",
     lambda home: home / ".hermes" / "hermes-agent-self-evolution",

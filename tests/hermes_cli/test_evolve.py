@@ -39,12 +39,30 @@ class TestResolveEvolutionHome:
 
         assert evolve.resolve_evolution_home() == env_install
 
-    def test_home_code_fallback(self, tmp_path, monkeypatch):
+    def test_home_capital_code_fallback(self, tmp_path, monkeypatch):
+        # ~/Code/... is the preferred fallback location.
+        install = _make_fake_install(tmp_path / "home" / "Code" / "hermes-agent-self-evolution")
+        monkeypatch.delenv("HERMES_EVOLUTION_HOME", raising=False)
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+
+        assert evolve.resolve_evolution_home() == install
+
+    def test_home_lowercase_code_fallback(self, tmp_path, monkeypatch):
+        # ~/code/... is also accepted (Linux convention).
         install = _make_fake_install(tmp_path / "home" / "code" / "hermes-agent-self-evolution")
         monkeypatch.delenv("HERMES_EVOLUTION_HOME", raising=False)
         monkeypatch.setenv("HOME", str(tmp_path / "home"))
 
         assert evolve.resolve_evolution_home() == install
+
+    def test_capital_code_wins_over_lowercase(self, tmp_path, monkeypatch):
+        # If both ~/Code/ and ~/code/ exist with valid installs, Code/ wins.
+        capital = _make_fake_install(tmp_path / "home" / "Code" / "hermes-agent-self-evolution")
+        _make_fake_install(tmp_path / "home" / "code" / "hermes-agent-self-evolution")
+        monkeypatch.delenv("HERMES_EVOLUTION_HOME", raising=False)
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+
+        assert evolve.resolve_evolution_home() == capital
 
     def test_home_root_fallback(self, tmp_path, monkeypatch):
         install = _make_fake_install(tmp_path / "home" / "hermes-agent-self-evolution")
