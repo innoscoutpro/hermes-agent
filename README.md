@@ -137,6 +137,55 @@ See `hermes claw migrate --help` for all options, or use the `openclaw-migration
 
 ---
 
+## Skill Self-Evolution *(fork addition)*
+
+> Not in upstream NousResearch/hermes-agent yet — added in this fork via
+> [PBI-001](docs/delivery/02-in-progress/PBI-001-hermes-evolve-subcommand/prd.md).
+
+Run [hermes-agent-self-evolution](https://github.com/NousResearch/hermes-agent-self-evolution)
+against any skill in your hermes install:
+
+```bash
+hermes evolve github-code-review --dry-run
+hermes evolve github-code-review --use-llm-judge --run-tests --create-pr
+```
+
+Flags after the skill name are forwarded verbatim to
+`python -m evolution.skills.evolve_skill`. Run
+`hermes evolve <skill> --help` to see the full evolution flag set.
+
+**Setup.** Clone the self-evolution repo, create its venv, and install:
+
+```bash
+git clone https://github.com/NousResearch/hermes-agent-self-evolution.git ~/Code/hermes-agent-self-evolution
+cd ~/Code/hermes-agent-self-evolution
+python -m venv .venv && .venv/bin/pip install -e '.[dev]'
+```
+
+Hermes discovers the install automatically via this resolution order:
+
+1. `$HERMES_EVOLUTION_HOME` env var (if set).
+2. `~/Code/hermes-agent-self-evolution` (preferred).
+3. `~/code/hermes-agent-self-evolution` (Linux lowercase fallback).
+4. `~/hermes-agent-self-evolution`.
+5. `~/.hermes/hermes-agent-self-evolution`.
+
+**Wrapper-only flags** (handled by `hermes evolve` itself, not forwarded):
+
+- `hermes evolve --where` — print the resolved self-evolution path.
+- `hermes evolve --version` — print the package version + path.
+
+**Exit codes:** 64 = self-evolution not installed; 65 = install found
+but `.venv` missing; 66 = `.venv` found but the `evolution` package is
+not importable. The hint emitted on stderr explains how to recover.
+
+The wrapper never modifies skills in your hermes install — evolved
+skills land in `<self-evolution>/output/proposals/<skill>/<ts>/` for
+manual review. Apply by hand (or via a follow-up `hermes evolve apply`,
+not yet built).
+
+---
+
 ## Contributing
 
 We welcome contributions! See the [Contributing Guide](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) for development setup, code style, and PR process.
