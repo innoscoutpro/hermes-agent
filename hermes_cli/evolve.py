@@ -12,12 +12,26 @@ See plans/hermes-evolve-subcommand.md for the full design.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Iterable, Optional
 
 
 _EVOLUTION_ENTRY = ("-m", "evolution.skills.evolve_skill")
+
+_VERSION_RE = re.compile(r'^\s*version\s*=\s*"([^"]+)"', re.MULTILINE)
+
+EXIT_NO_INSTALL = 64
+EXIT_NO_VENV = 65
+EXIT_NOT_IMPORTABLE = 66
+
+_INSTALL_HINT = (
+    "hermes-agent-self-evolution not installed. Set HERMES_EVOLUTION_HOME "
+    "or clone to ~/code/hermes-agent-self-evolution. "
+    "See https://github.com/innoscoutpro/hermes-agent-self-evolution"
+)
 
 
 # Path resolution candidates, in priority order. Each callable receives the
@@ -110,3 +124,42 @@ def build_argv(python: Path, user_args: Iterable[str]) -> list[str]:
     else:
         rewritten = user_args
     return [str(python), *_EVOLUTION_ENTRY, *rewritten]
+
+
+def _read_version(install: Path) -> str:
+    """Best-effort read of the package version from pyproject.toml."""
+    pyproject = install / "pyproject.toml"
+    if not pyproject.is_file():
+        return "(unknown — pyproject.toml missing)"
+    try:
+        text = pyproject.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return f"(unreadable: {exc})"
+    match = _VERSION_RE.search(text)
+    return match.group(1) if match else "(unknown — no version field)"
+
+
+def handle_helper_flag(flag: str) -> int:
+    """Handle wrapper-only flags. Return exit code, or -1 if not a helper.
+
+    Helpers short-circuit before subprocess dispatch so users get a fast,
+    deterministic answer without going through DSPy import.
+    """
+    if flag == "--where":
+        install = resolve_evolution_home()
+        if install is None:
+            print(_INSTALL_HINT, file=sys.stderr)
+            return EXIT_NO_INSTALL
+        print(install)
+        return 0
+
+    if flag == "--version":
+        install = resolve_evolution_home()
+        if install is None:
+            print(_INSTALL_HINT, file=sys.stderr)
+            return EXIT_NO_INSTALL
+        version = _read_version(install)
+        print(f"hermes-agent-self-evolution {version} ({install})")
+        return 0
+
+    return -1

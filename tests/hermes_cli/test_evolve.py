@@ -176,3 +176,47 @@ class TestBuildArgv:
         py = self._python(tmp_path)
         argv = evolve.build_argv(py, [])
         assert argv == [str(py), "-m", "evolution.skills.evolve_skill"]
+
+
+class TestHelperFlags:
+    def test_where_prints_path_and_returns_zero(self, tmp_path, monkeypatch, capsys):
+        install = _make_fake_install(tmp_path / "code" / "hermes-agent-self-evolution")
+        monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(install))
+
+        rc = evolve.handle_helper_flag("--where")
+
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert str(install) in out
+
+    def test_where_no_install_returns_64(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.delenv("HERMES_EVOLUTION_HOME", raising=False)
+        monkeypatch.setenv("HOME", str(tmp_path / "empty-home"))
+        (tmp_path / "empty-home").mkdir()
+
+        rc = evolve.handle_helper_flag("--where")
+
+        assert rc == 64
+        err = capsys.readouterr().err
+        assert "not installed" in err.lower()
+
+    def test_version_prints_version_and_path(self, tmp_path, monkeypatch, capsys):
+        install = _make_fake_install(tmp_path / "evo")
+        # Stub a pyproject.toml so reading version returns something.
+        (install / "pyproject.toml").write_text(
+            '[project]\nname = "hermes-agent-self-evolution"\nversion = "9.9.9"\n'
+        )
+        monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(install))
+
+        rc = evolve.handle_helper_flag("--version")
+
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "9.9.9" in out
+        assert str(install) in out
+
+    def test_unknown_flag_returns_negative_one(self, tmp_path, monkeypatch):
+        # Sentinel: helper not handled, caller should fall through to subprocess.
+        monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(tmp_path))
+        rc = evolve.handle_helper_flag("--nonexistent")
+        assert rc == -1
