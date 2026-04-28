@@ -313,3 +313,27 @@ class TestRunEvolve:
         assert ei.value.code == 0
         assert called == []  # execvp NEVER called for helper flags
         assert str(install) in capsys.readouterr().out
+
+    def test_version_short_circuits_before_execvp(self, tmp_path, monkeypatch, capsys):
+        install = _make_fake_install(tmp_path / "evo")
+        (install / "pyproject.toml").write_text(
+            '[project]\nname = "hermes-agent-self-evolution"\nversion = "1.2.3"\n'
+        )
+        monkeypatch.setenv("HERMES_EVOLUTION_HOME", str(install))
+        monkeypatch.setenv("HOME", str(tmp_path / "no-fallback"))
+        (tmp_path / "no-fallback").mkdir()
+
+        called = []
+        monkeypatch.setattr(
+            os, "execvp",
+            lambda *a, **k: called.append(a) or (_ for _ in ()).throw(SystemExit(0)),
+        )
+
+        with pytest.raises(SystemExit) as ei:
+            evolve.run_evolve(["--version"])
+
+        assert ei.value.code == 0
+        assert called == []  # execvp NEVER called for helper flags
+        out = capsys.readouterr().out
+        assert "1.2.3" in out
+        assert str(install) in out
