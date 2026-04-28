@@ -7307,6 +7307,7 @@ def _coalesce_session_name_args(argv: list) -> list:
         "dashboard",
         "honcho",
         "claw",
+        "evolve",
         "plugins",
         "acp",
         "webhook",
@@ -9809,6 +9810,44 @@ Examples:
     claw_parser.set_defaults(func=cmd_claw)
 
     # =========================================================================
+    # evolve command (skill self-evolution)
+    # =========================================================================
+    # add_help=False so --help is forwarded to the underlying evolve_skill CLI
+    # rather than intercepted here. argparse.REMAINDER captures every arg
+    # after `evolve` so flags pass through unmolested. Helper flags
+    # (--where, --version) are detected manually inside run_evolve.
+    evolve_parser = subparsers.add_parser(
+        "evolve",
+        help="Evolve a Hermes skill via hermes-agent-self-evolution",
+        description=(
+            "Run hermes-agent-self-evolution against a skill. Forwards every "
+            "argument to `python -m evolution.skills.evolve_skill`. Path "
+            "resolution: $HERMES_EVOLUTION_HOME -> ~/code/hermes-agent-self-evolution "
+            "-> ~/hermes-agent-self-evolution -> ~/.hermes/hermes-agent-self-evolution. "
+            "Helper flags handled by the wrapper: --where (print resolved path), "
+            "--version (print package version)."
+        ),
+        add_help=False,
+    )
+    evolve_parser.add_argument(
+        "evolve_args",
+        nargs=argparse.REMAINDER,
+        help="Skill name plus flags forwarded to the underlying CLI",
+    )
+
+    def cmd_evolve(args):
+        """Dispatch to hermes_cli.evolve.run_evolve.
+
+        Imports lazily so the rest of the CLI does not pay the cost when the
+        user is not running an evolve subcommand.
+        """
+        from hermes_cli.evolve import run_evolve
+
+        run_evolve(args.evolve_args or [])
+
+    evolve_parser.set_defaults(func=cmd_evolve)
+
+    # =========================================================================
     # version command
     # =========================================================================
     version_parser = subparsers.add_parser("version", help="Show version information")
@@ -10109,6 +10148,24 @@ Examples:
         sys.exit(1)
 
     _processed_argv = _coalesce_session_name_args(sys.argv[1:])
+
+    # ── Early intercept: `hermes evolve …` ──────────────────────────
+    # argparse.REMAINDER does NOT capture leading `--flag` tokens — argparse
+    # interprets them at the parent level before reaching the evolve
+    # subparser. Since every arg after `evolve` must pass through to the
+    # underlying CLI unmolested (including --where, --version, --help), we
+    # short-circuit here when the first non-flag positional is `evolve`.
+    _first_positional_idx = next(
+        (i for i, t in enumerate(_processed_argv) if not t.startswith("-")), None
+    )
+    if (
+        _first_positional_idx is not None
+        and _processed_argv[_first_positional_idx] == "evolve"
+    ):
+        from hermes_cli.evolve import run_evolve
+
+        run_evolve(_processed_argv[_first_positional_idx + 1 :])
+        return
 
     # ── Defensive subparser routing (bpo-9338 workaround) ───────────
     # On some Python versions (notably <3.11), argparse fails to route
